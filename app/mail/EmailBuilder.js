@@ -17,6 +17,7 @@ class EmailBuilder {
         var mailMsg = new MailMessage();
         mailMsg.subject = subject;
         mailMsg.message = mailBody;
+        mailMsg.html = true;
 
         return mailMsg;
     }

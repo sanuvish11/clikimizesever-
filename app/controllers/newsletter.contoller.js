@@ -37,7 +37,7 @@ router.post('/save', (req, res) => {
                     message: news.email
                 }
                 const myObjStr = JSON.stringify(myJSON);
-        //  console.log(myObjStr);
+                //  console.log(myObjStr);
                 Notification.create({
                     title: "new subscriber Clickimize",
                     content: myObjStr,
@@ -50,7 +50,7 @@ router.post('/save', (req, res) => {
                             id: 2
                         }
                     }).then(response => {
-                 //   console.log(response.subject);
+                        //   console.log(response.subject);
                         SiteSetting.findOne({}).then(site => {
                             var m = {
                                 twitterLink: site.twitterLink,
@@ -65,7 +65,7 @@ router.post('/save', (req, res) => {
                                 email: news.email
                             };
                             let template = ejs.compile(response.template, m);
-                          ///  console.log(template(m));
+                            ///  console.log(template(m));
                             let subject = response.subject + "" + site.siteName;
 
                             var msg = EmailBuilder.getNewsLattersMessage(template(m), subject);
@@ -73,15 +73,15 @@ router.post('/save', (req, res) => {
                             var ser = new EmailService();
                             ser.sendEmail(msg, function (err, result) {
                                 res.send("email send successfully")
-                              // console.log("email send success")
+                               // console.log("email send success")
                             })
                         })
                     })
 
-                    res.send({
-                        status: 1,
-                        message: " create news latter successfully"
-                    })
+                    // res.send({
+                    //     status: 1,
+                    //     message: " create news latter successfully"
+                    // })
                 })
                     .catch(err => {
                         res.send({

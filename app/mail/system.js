@@ -1,11 +1,11 @@
 var system = {
     mail: {
         service: 'gmail',
-        Port: 465,
+        port: 465,
         secure: true,
         auth: {
-            user: 'sanuvish11@gmail.com',
-            password: 'Shanu@275'
+            user: 'admin@clickimize.com',
+            password: 'Cl1ck1m1z3'
         }
     }
 }

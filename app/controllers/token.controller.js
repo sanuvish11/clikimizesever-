@@ -3,6 +3,7 @@ const config = require("../config/auth.config");
 const router = express.Router();
 var jwt = require("jsonwebtoken");
 var db = require("../models");
+const cron = require('node-cron');
 var SiteSetting = db.sitesetting;
 const Op = db.Sequelize.Op;
 
@@ -22,4 +23,13 @@ router.get('/getSettingsToken', (req, res) => {
     })
 
 })
+
+// cron.schedule('12 * * * *', () => {
+
+//     console.log('running a task every minute');
+//     router.get('/getSettingsToken', (req, res) => {
+//     })
+
+
+// })
 module.exports = router

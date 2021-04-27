@@ -13,6 +13,8 @@ const readingTime = require('reading-time');
 var ManageBlog = db.manageblog;
 var Like = db.like;
 const Op = db.Sequelize.Op;
+var os = require("os");
+var hostname = os.hostname();
 
 var storage = multer.diskStorage({
     destination: "./public/blogImage/",
@@ -33,7 +35,7 @@ var Blogmain = multer({ storage: storage }).single('UploadFiles');
 //POST ROUTE
 // create Blog
 router.post('/save', Blog, (req, res) => {
-    //  console.log(req.body);
+    //   console.log(req.file);
     ManageBlog.create({
         blogUrl: req.body.blogUrl,
         blogTitle: req.body.blogTitle,
@@ -81,7 +83,7 @@ router.post('/updatestatus/:id', (req, res) => {
 });
 //update blog  detail by id(1)
 router.post('/update/:id', Blog, (req, res) => {
-console.log(req.body)
+    console.log(req.body)
     const id = req.params.id;
     ManageBlog.update({
         blogTitle: req.body.blogTitle,
@@ -136,8 +138,7 @@ router.get('/getall', (req, res) => {
                     id: element.id,
                     blogUrl: element.blogUrl,
                     estimateTime: element.estimateTime,
-                    // blogImage: 'http://localhost:8080/blogImage/' + element.blogImage,
-                    blogImage: 'http://clickimize.us-east-1.elasticbeanstalk.com/blogImage/' + element.blogImage,
+                    blogImage: 'http://' + req.headers.host + '/blogImage/' + element.blogImage,
                     blogTitle: element.blogTitle,
                     body: element.body,
                     status: element.status,
@@ -189,8 +190,7 @@ router.get('/getpublish', (req, res) => {
                     id: element.id,
                     blogUrl: element.blogUrl,
                     estimateTime: element.estimateTime,
-                    // blogImage: 'http://localhost:8080/blogImage/' + element.blogImage,
-                    blogImage: 'http://clickimize.us-east-1.elasticbeanstalk.com/blogImage/' + element.blogImage,
+                    blogImage: 'http://' + req.headers.host + '/blogImage/' + element.blogImage,
                     blogTitle: element.blogTitle,
                     body: element.body,
                     status: element.status,
@@ -235,7 +235,7 @@ router.get('/getByBlogUrl/:id', (req, res) => {
                 blogUrl: blog.blogUrl,
                 estimateTime: blog.estimateTime,
                 // blogImage: 'http://localhost:8080/blogImage/' + blog.blogImage,
-                blogImage: 'http://clickimize.us-east-1.elasticbeanstalk.com/blogImage/' + blog.blogImage,
+                blogImage: 'http://' + req.headers.host + '/blogImage/' + blog.blogImage,
                 blogTitle: blog.blogTitle,
                 body: blog.body,
                 status: blog.status,
@@ -282,13 +282,13 @@ router.get('/getById/:id', (req, res) => {
                 }
             }
         }).then(data => {
-           // console.log(data);
+            // console.log(data);
             let blogdata = {
                 id: blog.id,
                 blogUrl: blog.blogUrl,
                 estimateTime: blog.estimateTime,
                 // blogImage: 'http://localhost:8080/blogImage/' + element.blogImage,
-                blogImage: 'http://clickimize.us-east-1.elasticbeanstalk.com/blogImage/' + blog.blogImage,
+                blogImage: 'http://' + req.headers.host + '/blogImage/' + blog.blogImage,
                 blogTitle: blog.blogTitle,
                 body: blog.body,
                 status: blog.status,
@@ -322,13 +322,16 @@ router.get('/getById/:id', (req, res) => {
 })
 //get blog by Id
 router.get('/getBlogByTag/:metaTag', (req, res) => {
-   // console.log(req.body);
+
     const metaTag = req.params.metaTag;
+   // console.log(req);
     let list = [];
     let results = [];
     ManageBlog.findAll({
         where: {
-            metaTag: metaTag
+            metaTag: {
+                [Op.like]: "%" + metaTag + "%"
+            }
         }, order: [
             ["id", "DESC"]
         ]
@@ -339,9 +342,7 @@ router.get('/getBlogByTag/:metaTag', (req, res) => {
                 let blogdata = {
                     id: element.id,
                     estimateTime: element.estimateTime,
-                    blogImage: 'http://clickimize.us-east-1.elasticbeanstalk.com/blogImage/' + element.blogImage,
-                    // blogImage: 'http://localhost:8080/blogImage/' + element.blogImage,
-                    // name: blog.name,
+                    blogImage: 'http://' + req.headers.host + '/blogImage/' + element.blogImage,
                     blogTitle: element.blogTitle,
                     body: element.body,
                     status: element.status,
@@ -352,6 +353,7 @@ router.get('/getBlogByTag/:metaTag', (req, res) => {
                 results.push(blogdata);
 
                 if (list.length == results.length) {
+                    //console.log(results)
                     res.send(Array.prototype.concat.apply([], results))
                 }
             }
@@ -396,14 +398,14 @@ router.delete('/delete/:id', (req, res) => {
 
 
 router.post('/saveImage', Blogmain, (req, res) => {
-   console.log(req.body)
+  //  console.log(req.body)
     res.send({
         status: 1,
         message: "Image Saved"
     });
 });
 router.get('/getBlogId/:id', (req, res) => {
- //   console.log(req.body);
+    //   console.log(req.body);
     const id = req.params.id;
     ManageBlog.findOne({
         where: {
@@ -413,9 +415,7 @@ router.get('/getBlogId/:id', (req, res) => {
         let blogdata = {
             id: blog.id,
             estimateTime: blog.estimateTime,
-            blogImage: 'http://clickimize.us-east-1.elasticbeanstalk.com/blogImage/' + blog.blogImage,
-            // blogImage: 'http://localhost:8080/blogImage/' + blog.blogImage,
-            // name: blog.name,
+            blogImage: 'http://' + req.headers.host + '/blogImage/' + blog.blogImage,
             blogTitle: blog.blogTitle,
             body: blog.body,
             status: blog.status,

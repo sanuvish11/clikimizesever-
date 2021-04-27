@@ -12,9 +12,14 @@ const { pathToFileURL } = require('url');
 const { extname } = require('path');
 const path = require("path");
 const fs = require("fs");
-const authJwt = require("../middleware/authJwt");
+
 var Role = db.role;
 var Admin = db.admin;
+var ResetPass = db.ResetPass;
+var EmailTemplate = db.emailtemplate;
+let ejs = require('ejs');
+var ResetPass = db.reset;
+var SiteSetting = db.sitesetting;
 const Op = db.Sequelize.Op;
 //POST ROUTE
 //user registration on admin 
@@ -41,55 +46,55 @@ router.post('/signup', (req, res) => {
             return;
         } else {
             Admin.create({
-                    adminName: req.body.adminName,
-                    adminEmail: req.body.adminEmail,
-                    ipAddress: req.body.ipAddress,
-                    adminPass: bcrypt.hashSync(req.body.adminPass, 8),
-                    profileImg: req.body.profileImg,
-                    adminType: req.body.adminType,
-                    permissions: req.body.permissions,
-                    isActive: req.body.isActive,
-                    created_date: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''),
-                    updated_date: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''),
-                }).then(user => {
-                    if (req.body.roles) {
-                        Role.findAll({
-                            where: {
-                                name: {
-                                    [Op.or]: req.body.roles
-                                }
+                adminName: req.body.adminName,
+                adminEmail: req.body.adminEmail,
+                ipAddress: req.body.ipAddress,
+                adminPass: bcrypt.hashSync(req.body.adminPass, 8),
+                profileImg: req.body.profileImg,
+                adminType: req.body.adminType,
+                permissions: req.body.permissions,
+                isActive: req.body.isActive,
+                created_date: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''),
+                updated_date: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''),
+            }).then(user => {
+                if (req.body.roles) {
+                    Role.findAll({
+                        where: {
+                            name: {
+                                [Op.or]: req.body.roles
                             }
-                        }).then(roles => {
-                            res.send(roles)
-                            user.setRoles(roles).then(() => {
-                                res.send({
-                                    status: 1,
-                                    message: "admin registration successfully"
-                                });
-                            });
-                        });
-                    } else {
-                        user.setRoles([1]).then(() => {
-                            var m = {
-                                adminEmail: user.adminEmail,
-                                adminPass: user.adminPass,
-                                adminName: user.adminName,
-                            };
-                           // var msg = EmailBuilder.getSignUpMessage(m);
-                            msg.to = req.body.email;
-                            var ser = new EmailService()
-                            ser.sendEmail(msg, function(err, result) {
-                                if (err) {
-                                res.send(err);
-                                }
-                            });
+                        }
+                    }).then(roles => {
+                        res.send(roles)
+                        user.setRoles(roles).then(() => {
                             res.send({
                                 status: 1,
                                 message: "admin registration successfully"
                             });
                         });
-                    }
-                })
+                    });
+                } else {
+                    user.setRoles([1]).then(() => {
+                        var m = {
+                            adminEmail: user.adminEmail,
+                            adminPass: user.adminPass,
+                            adminName: user.adminName,
+                        };
+                        // var msg = EmailBuilder.getSignUpMessage(m);
+                        msg.to = req.body.email;
+                        var ser = new EmailService()
+                        ser.sendEmail(msg, function (err, result) {
+                            if (err) {
+                                res.send(err);
+                            }
+                        });
+                        res.send({
+                            status: 1,
+                            message: "admin registration successfully"
+                        });
+                    });
+                }
+            })
                 .catch(err => {
                     res.send({
                         err: err,
@@ -105,10 +110,10 @@ router.post('/signup', (req, res) => {
 //admin dashborad login
 router.post('/login', (req, res) => {
     Admin.findOne({
-            where: {
-                adminName: req.body.adminName
-            }
-        })
+        where: {
+            adminName: req.body.adminName
+        }
+    })
         .then(user => {
             if (!user) {
                 return res.send({
@@ -161,38 +166,76 @@ router.post('/login', (req, res) => {
 
 //forget password admin by email
 router.post('/forgetpassword', (req, res) => {
+   // console.log(req.body);
     Admin.findOne({
-            where: {
-                adminEmail: {
-                    [Op.like]: req.body.adminEmail
-                }
+        where: {
+            adminEmail: {
+                [Op.like]: req.body.adminEmail
             }
-        })
+        }
+    })
         .then(data => {
-            if (data.length == 0) {
+            // console.log(data)
+            if (data.length != 0) {
+                EmailTemplate.findOne({
+                    where: {
+                        id: 5
+                    }
+                }).then(response => {
+                    SiteSetting.findOne({}).then(site => {
+                        let token = "";
+                        var result = '';
+                        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                        var charactersLength = characters.length;
+                        for (var i = 0; i < 12; i++) {
+                            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                        }
+                        token = result;
+                        ResetPass.create({
+                            email: data.adminEmail,
+                            token: token,
+                            status: 0,
+                        }).then(resetpass => {
+                            var m = {
+                                twitterLink: site.twitterLink,
+                                googlePlus: site.googlePlus,
+                                linkedinLink: site.linkedinLink,
+                                footerCopyRight: '' + site.footerCopyRight,
+                                resetLink: "http://clickimizeadmin.s3-website.us-east-2.amazonaws.com/reset/" + token,
+                                siteName: site.siteName,
+                                siteLogo: 'http://' + req.headers.host + '/logo/' + site.siteLogo,
+                                faviconIcon: 'http://' + req.headers.host + '/favi/' + site.faviconIcon,
+                                subject: response.subject,
+                                firstName: data.adminName,
+
+                                email: data.adminEmail,
+                            };
+                            let template = ejs.compile(response.template, m);
+                            let subject = response.subject + " " + site.siteName;
+                            var msg = EmailBuilder.getForgetPasswordMessage(template(m), subject);
+                            msg.to = req.body.adminEmail;
+                            var ser = new EmailService()
+
+                            ser.sendEmail(msg, function (err, result) {
+                                res.send('email send successfully')
+
+                            })
+                            res.send({
+                                status: 1,
+                                message: "Mail Sent"
+                            });
+                        });
+                    })
+                })
+            } else {
                 res.send({
                     status: 4,
-                    message: "Email Id Not Found"
+                    message: "Email Not Found"
                 });
-            } else {
-                res.json(data)
-                var m = {
-                    adminEmail: data.adminEmail,
-                    adminPass: data.adminPass,
-                    adminName: data.adminName,
-                };
-                var msg = EmailBuilder.getForgetPasswordMessage(m);
-                msg.to = req.body.adminEmail;
-                var ser = new EmailService()
-                ser.sendEmail(msg, function(err, result) {})
+
             }
-        }).catch(err =>
-            res.send({
-                err: err,
-                status: 5,
-                message: "please check internet connection"
-            }))
-})
+        }).catch(err => res.send(err))
+});
 
 //update password by id
 router.post('/changepassword/:id', (req, res) => {
@@ -240,38 +283,38 @@ router.post('/changepassword/:id', (req, res) => {
 
 //update admin detail by id(1)
 router.post('/update/:id', (req, res) => {
-        const id = req.body.id;
-        User.update(req.body, {
-                where: { id: id }
-            })
-            .then(num => {
-                if (num == 1) {
-                    res.send({
-                        status: 1,
-                        message: "updated successfully."
-
-                    });
-                } else {
-                    res.send({
-                        status: 0,
-                        message: `Cannot update admin info with id=${id}. Maybe  admin info was not found or req.body is empty!`
-                    });
-                }
-            }).catch(err => {
-                res.send({
-                    err: err,
-                    status: 5,
-                    message: "unable to proccess"
-                });
-            });
+    const id = req.body.id;
+    User.update(req.body, {
+        where: { id: id }
     })
-    //update profile image
+        .then(num => {
+            if (num == 1) {
+                res.send({
+                    status: 1,
+                    message: "updated successfully."
+
+                });
+            } else {
+                res.send({
+                    status: 0,
+                    message: `Cannot update admin info with id=${id}. Maybe  admin info was not found or req.body is empty!`
+                });
+            }
+        }).catch(err => {
+            res.send({
+                err: err,
+                status: 5,
+                message: "unable to proccess"
+            });
+        });
+})
+//update profile image
 router.post('/updateImage', profile, (req, res) => {
     const id = req.body.id;
     //console.log(req.file)
     Admin.update({ profileImg: req.file.filename }, {
-            where: { id: id }
-        })
+        where: { id: id }
+    })
         .then(num => {
             if (num == 1) {
                 res.send({
@@ -320,6 +363,67 @@ router.get('/getall', (req, res) => {
             });
         });
 })
+router.get('/checkLink/:ref', (req, res) => {
 
+    const token = req.params.ref;
+  //  console.log(token)
+    ResetPass.findOne({
+        where: {
+            token: token,
+            status: 0
+        }
+    }).then(response => {
+       // console.log(response)
+        if (response.length != 0) {
+            res.json({
+                status: 1,
+                response: response
+            })
+        } else {
+            res.send({
+                status: 4,
+                message: "Invalid token"
+            })
+        }
+    }).catch(err => {
+        res.send({
+            err: err,
+            status: 5,
+            message: 'Invalid Link, Please regenerate another reset password link.'
+        })
+    });
+})
 
+router.post('/resetpassword/:email', (req, res) => {
+   // console.log(req.body)
+    const adminEmail = req.params.email
+    Admin.update({ adminPass: bcrypt.hashSync(req.body.password, 8) }, {
+        where: { adminEmail: adminEmail }
+    }).then(num => {
+        ResetPass.update({ status :1}, {
+            where: {
+                id: req.body.id
+            }
+        })
+        if (num == 1) {
+            res.send({
+                status: 1,
+                message: "password updated successfully."
+
+            });
+        } else {
+            res.send({
+                status: 0,
+                message: `Cannot update password with id=${id}. Maybe  password was not found or req.body is empty!`
+            });
+        }
+    }).catch(err => {
+      //  console.log(err)
+        res.send({
+            err: err,
+            status: 5,
+            message: "unable to proccess"
+        });
+    });
+})
 module.exports = router;

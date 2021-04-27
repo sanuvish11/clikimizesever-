@@ -15,6 +15,7 @@ var db = require("../models");
 var Like = db.like;
 const Op = db.Sequelize.Op;
 let ejs = require('ejs');
+const fetch = require('node-fetch');
 
 var User = db.user;
 var Role = db.role;
@@ -29,6 +30,8 @@ var ManageBlog = db.manageblog;
 var Transaction = db.transaction;
 var Website = db.website;
 var Like = db.like;
+var ManageNewsLetter = db.managenewsletter;
+var ContactUs = db.contactus;
 
 
 var storage = multer.diskStorage({
@@ -102,9 +105,9 @@ router.post('/register', (req, res) => {
                             // console.log(ejs.compile(response.template));
                             var m = {
                                 footerCopyRight: '' + site.footerCopyRight,
-                                verificationLink: "http://clickimizeadmin.s3-website.us-east-2.amazonaws.com/accVerification/" + verifyToken.token,
+                                verificationLink: "http://clickimizeuser.s3-website.us-east-2.amazonaws.com/accVerification/" + verifyToken.token,
                                 siteName: site.siteName,
-                                siteLogo: 'https://clickimize.com/themes-nct/images-nct/9199854241579258395.PNG', //`http://localhost:8080/logo/${site.siteLogo}`,
+                                siteLogo: 'http://' + req.headers.host + '/logo/' + site.siteLogo,
                                 firstName: req.body.firstName,
                                 lastName: req.body.lastName,
                                 email: req.body.email
@@ -139,27 +142,26 @@ router.post('/register', (req, res) => {
 
 //user  login
 router.post('/login', (req, res) => {
-    let results = [];
-    let list = [];
+  //  console.log(req.body)
     User.findOne({
         where: {
             email: req.body.email
         }
     }).then(user => {
+        let type = req.body.userType;
         if (!user) {
             return res.send({
                 status: 4,
                 message: "User Not found."
             });
         }
-        else if (user.status != req.body.status) {
-            return res.send({
-                status: 6,
-                message: "Please email verify link!"
-            });
-        }
-        let type = req.body.userType;
         if (type == 1) {
+            if (user.status != req.body.status) {
+                return res.send({
+                    status: 6,
+                    message: "Please email verify link!"
+                });
+            }
             var passwordIsValid = bcrypt.compareSync(
                 req.body.password,
                 user.password,
@@ -185,6 +187,7 @@ router.post('/login', (req, res) => {
                 }
             }).then(role => {
                 roles = role.name;
+
                 res.send({
                     status: 1,
                     user: {
@@ -192,7 +195,7 @@ router.post('/login', (req, res) => {
                         firstName: user.firstName,
                         lastName: user.lastName,
                         email: user.email,
-                        profileImg: `http://clickimize.us-east-1.elasticbeanstalk.com/profile/${user.profileImg}`,
+                        profileImg: 'http://' + req.headers.host + '/profile/' + user.profileImg,
                         roleName: roles,
                         accessToken: tokensite,
                         phone: user.mobileNumber,
@@ -202,8 +205,43 @@ router.post('/login', (req, res) => {
                 });
             })
         }
+        else if (type == 2) {
+            var token = jwt.sign({ id: user.id }, config.secret, {
+                //  algorithm: 'RS256',
+                expiresIn: 10 * 60 * 1000,
+                // 24 hours
+            });
+            var tokensite = token.replace(".", "124abcdkamal");
+            var roles;
+            Role.findOne({
+                where: {
+                    id: {
+                        [Op.like]: user.roleId
+                    }
+                }
+            }).then(role => {
+                roles = role.name;
+
+                res.send({
+                    status: 1,
+                    user: {
+                        id: user.id,
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        email: user.email,
+                        profileImg: 'http://' + req.headers.host + '/profile/' + user.profileImg,
+                        roleName: roles,
+                        accessToken: tokensite,
+                        phone: user.mobileNumber,
+                        address: user.address,
+                        userType: user.userType
+                    }
+                });
+            })
+
+        }
     }).catch(err => {
-        console.log(err)
+      //  console.log(err)
         res.send({
             err: err,
             status: 5,
@@ -223,7 +261,6 @@ router.post('/forgetpassword', (req, res) => {
         }
     })
         .then(data => {
-
             if (data.length != 0) {
                 EmailTemplate.findOne({
                     where: {
@@ -242,17 +279,18 @@ router.post('/forgetpassword', (req, res) => {
                         ResetPass.create({
                             email: data.email,
                             token: token,
-                            status: 1,
+                            status: 0,
                         }).then(resetpass => {
                             var m = {
                                 twitterLink: site.twitterLink,
                                 googlePlus: site.googlePlus,
                                 linkedinLink: site.linkedinLink,
                                 footerCopyRight: '' + site.footerCopyRight,
-                                resetLink: "http://clickimizeadmin.s3-website.us-east-2.amazonaws.com/reset/" + token,
+                                resetLink: "http://clickimizeuser.s3-website.us-east-2.amazonaws.com/reset/" + token,
                                 siteName: site.siteName,
-                                siteLogo: 'https://clickimize.com/themes-nct/images-nct/9199854241579258395.PNG', //`http://localhost:8080/logo/${site.siteLogo}`,
-                                faviconIcon: `http://clickimize.us-east-1.elasticbeanstalk.com/favi/${site.faviconIcon}`,
+                                profileImg: 'http://' + req.headers.host + '/profile/' + data.profileImg,
+                                siteLogo: 'http://' + req.headers.host + '/logo/' + site.siteLogo,
+                                faviconIcon: 'http://' + req.headers.host + '/favi/' + site.faviconIcon,
                                 subject: response.subject,
                                 firstName: data.firstName,
                                 lastName: data.lastName,
@@ -356,13 +394,17 @@ router.post('/updateprofile/:id', profile, (req, res) => {
 //update any fild 
 router.post('/update/:email', (req, res) => {
     const email = req.params.email;
-    User.update(req.body, {
+    User.update({ password: bcrypt.hashSync(req.body.password, 8) }, {
         where: { email: email }
     }).then(num => {
         if (num == 1) {
-            res.send({
-                status: 1,
-                message: "User was updated successfully."
+            ResetPass.update({
+                status:1
+            }).then(data => {
+                res.send({
+                    status: 1,
+                    message: "User was updated successfully."
+                });
             });
         } else {
             res.send({
@@ -443,7 +485,7 @@ router.get('/getall', (req, res) => {
         ]
     }).then(user => {
         if (user.length != 0) {
-          //  console.log(user)
+            //  console.log(user)
 
             list = user;
             list.forEach((element) => {
@@ -453,10 +495,10 @@ router.get('/getall', (req, res) => {
                     firstName: element.firstName,
                     lastName: element.lastName,
                     email: element.email,
-                    profileImg: `http://clickimize.us-east-1.elasticbeanstalk.com/profile/${element.profileImg}`,
+                    profileImg: 'http://' + req.headers.host + '/profile/' + element.profileImg,
                     status: element.status,
-                    mobileNumber:element.mobileNumber,
-                    address:element.address,
+                    mobileNumber: element.mobileNumber,
+                    address: element.address,
                     createdAt: element.createdAt
                 }
                 //   console.log(userpackage);
@@ -481,13 +523,16 @@ router.get('/getall', (req, res) => {
 });
 
 router.get('/checkLink/:ref', (req, res) => {
+
     const token = req.params.ref;
+    console.log(token)
     ResetPass.findOne({
         where: {
             token: token,
             status: 0
         }
     }).then(response => {
+        console.log(response)
         if (response.length != 0) {
             res.json({
                 status: 1,
@@ -502,7 +547,7 @@ router.get('/checkLink/:ref', (req, res) => {
     }).catch(err => {
         res.send({
             err: err,
-            status: 0,
+            status: 5,
             message: 'Invalid Link, Please regenerate another reset password link.'
         })
     });
@@ -573,7 +618,7 @@ router.get('/getplanByUserId/:id', (req, res) => {
                                     if (list.length == results.length) {
                                         res.send(Array.prototype.concat.apply([], results))
                                     }
-                                    
+
                                 })
                             })
                         })
@@ -582,7 +627,7 @@ router.get('/getplanByUserId/:id', (req, res) => {
             })
         })
     }).catch(err => {
-        console.log(err)
+        //console.log(err)
         res.send({
             err: err,
             status: 5,
@@ -729,7 +774,7 @@ router.get('/getallByStatus', (req, res) => {
         User.findAndCountAll({
 
         }).then(data => {
-            console.log(data.count)
+           // console.log(data.count)
 
             list = user;
             list.forEach((element) => {
@@ -739,7 +784,7 @@ router.get('/getallByStatus', (req, res) => {
                     lastName: element.lastName,
                     email: element.email,
                     // userCount:data.count,
-                    profileImg: `http://clickimize.us-east-1.elasticbeanstalk.com/profile/${element.profileImg}`,
+                    profileImg: 'http://' + req.headers.host + '/profile/' + element.profileImg,
                     status: element.status
                 }
 
@@ -778,4 +823,101 @@ router.post('/updateToken/:token', (req, res) => {
         })
     });
 })
+
+
+//get 
+//getdashboard record
+
+router.get('/allRecord', (req, res) => {
+    var list = [];
+    var results = [];
+    var siteList = [];
+    var body;
+    User.findAll({
+        where: {
+            status: 0
+        },
+        order: [
+            ["id", "DESC"]
+        ]
+    }).then(user => {
+        ManageNewsLetter.findAll({
+
+        }).then(news => {
+            ContactUs.findAll({
+
+            }).then(contact => {
+                Transaction.findAll({
+                    limit: 1,
+
+                    order: [['createdAt', 'DESC']]
+                }).then(entries => {
+                    Transaction.findAll({
+                        include: [{
+                            model: User,
+                            required: true,
+                        }],
+                        order: [
+                            ["id", "DESC"]
+                        ]
+                    }).then(totalTrasation => {
+                        var dataall;
+                        total = 0,
+                            taxes = totalTrasation,
+                            taxes.forEach(element => {
+                                total += element.amount;
+                                dataall = {
+                                    amount: total,
+                                }
+                            })
+
+                        User.findAndCountAll({
+                        }).then(data => {
+
+                            Website.findAll({
+
+                            }).then(data => {
+                                list = data;
+                                // console.log(list)
+                                list.forEach(element => {
+                                    const url = 'https://api.duda.co/api/sites/multiscreen/' + element.site_name;
+                                    const options = {
+                                        method: 'GET',
+                                        headers: { 'Content-Type': 'application/json', 'authorization': 'Basic YTQwYjUyNDhmMDpyYWNaWW9yNzdLN24=' },
+                                    };
+
+                                    fetch(url, options)
+                                        .then(res => res.json())
+                                        .then(json => {
+                                            body = json
+                                            results.push(body);
+                                            if (list.length == results.length) {
+                                                res.send({
+                                                    toatalAmount: dataall,
+                                                    siteList: results,
+                                                    user: user,
+                                                    paymentDate: entries,
+                                                    count: data.count,
+                                                    news: news,
+                                                    contact: contact
+                                                })
+                                            }
+
+
+                                        })
+                                });
+                            })
+                        })
+                    })
+                });
+            })
+        })
+    }).catch(err =>
+        res.send({
+            err: err,
+            status: 5,
+            message: 'Unable to process'
+        }))
+
+});
 module.exports = router;

@@ -1,6 +1,5 @@
 module.exports = (sequelize, Sequelize) => {
     const PackageDetails = sequelize.define("tbl_package_detail", {
-
         packageDetail: {
             type: Sequelize.STRING
         },

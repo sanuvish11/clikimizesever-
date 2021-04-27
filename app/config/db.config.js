@@ -1,4 +1,5 @@
 module.exports = {
+    hostUrl: "http://clickimizeserver-env.eba-vp2qpse5.us-east-2.elasticbeanstalk.com/",
     HOST: "clickimizeprod.c6m22hq2avoe.us-east-1.rds.amazonaws.com",
     USER: "root",
     PASSWORD: "roottoor",

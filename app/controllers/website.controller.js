@@ -9,10 +9,11 @@ const sequelize = require('sequelize');
 var Website = db.website;
 var PackageDetail = db.packagedetail;
 var User = db.user;
-var Template = db.template;
 const Op = db.Sequelize.Op;
 var UserPackage = db.userpackage;
 var PackageType = db.packageType;
+var UserNotification = db.usernotification;
+
 //POST ROUTE
 //website create 
 router.post('/save', (req, res) => {
@@ -66,6 +67,21 @@ router.post('/save', (req, res) => {
                             site_name: resjosn.site_name
                         })
                             .then(data => {
+
+                                //create user notification
+                                UserNotification.create({
+                                    title: "create a new website",
+                                    tblUserId: data.userId,
+                                    content: "Thank You for create a website" + resjosn.site_name,
+                                    type: "package",
+                                    status: 1
+                                }).then(notify => {
+                                    res.send({
+                                        status: 1,
+                                        message: "notification create successfully"
+                                    })
+                                })
+
                                 if (data != null) {
                                     res.send({
                                         status: 1,
@@ -159,25 +175,18 @@ router.delete('/delete/:site_name', (req, res) => {
     };
     const url = 'https://api.duda.co/api/sites/multiscreen/' + site_name;
 
+
+   
     fetch(url, options)
         .then(data => {
-            if (data.length != 0) {
-                Website.destroy({
-                    where: { site_name: site_name }
-                }).then(data => {
-                    res.json({
-                        status: 1,
-                        message: "Website Delete Successfully"
-                    })
+            Website.destroy({
+                where: {site_name: site_name }
+            }).then(data => {
+                res.json({
+                    status: 1,
+                    message: "Website Delete Successfully"
                 })
-            }
-            else {
-                res.send({
-                    status: 4,
-                    message: "No Record Found"
-                })
-            }
-
+            })
         })
         .catch(err => {
             res.send({
@@ -211,25 +220,30 @@ router.get('/websiteList/:id', (req, res) => {
             fetch(url, options)
                 .then(res => res.json())
                 .then(json => {
-                    body = json
+                    body = json;
                     results.push(body);
                     if (list.length == results.length) {
-                        res.send(Array.prototype.concat.apply([], results))
-                    }
-                    else {
                         res.send({
-                            status: 4
+                            status: 1,
+                            results: results
                         })
+                        // res.send(Array.prototype.concat.apply([], results))
                     }
-                }).catch(err => {
-                    res.send({
-                        err: err,
-
-                        message: 'Unable to proccess'
-                    });
-                });
+                    // else {
+                    //     res.send({
+                    //         status: 4
+                    //     })
+                    // }
+                })
+        });
+    }).catch(err => {
+        res.send({
+            err: err,
+            status: 5,
+            message: 'Unable to proccess'
         });
     })
+
 })
 
 router.post('/resteSite/:site_name', (req, res) => {
@@ -280,7 +294,6 @@ router.get('/allWebsite', (req, res) => {
     Website.findAll({
     }).then(data => {
         list = data;
-
         // console.log(list)
         list.forEach(element => {
             const url = 'https://api.duda.co/api/sites/multiscreen/' + element.site_name;
@@ -457,7 +470,7 @@ router.get('/getplanByUserId/:id', (req, res) => {
                                 }
                             }).then(packtype => {
                                 list2 = packtype;
-                                let counter=1;
+                                let counter = 1;
                                 list2.forEach((element2) => {
                                     const currentDate = new Date();
                                     //  console.log(currentDate)
@@ -477,18 +490,18 @@ router.get('/getplanByUserId/:id', (req, res) => {
                                         packageStatus: element1.packageStatus
                                     }
 
-                                    if(counter==1){
-                                        userpackage.websiteCount =4;
-                                    counter = 2;
+                                    if (counter == 1) {
+                                        userpackage.websiteCount = 4;
+                                        counter = 2;
                                     }
                                     results.push(userpackage);
 
                                     if (list.length == results.length) {
-                                       
-                                       
+
+
                                         res.send(Array.prototype.concat.apply([], results))
                                     }
-                                    
+
                                 })
                             })
                         })
@@ -506,4 +519,87 @@ router.get('/getplanByUserId/:id', (req, res) => {
     })
 })
 
+///get persmission
+router.get('/getPermission/:id', (req, res) => {
+    console.log(req.params)
+    const id = req.params.id;
+    var list = [];
+    var results = [];
+    var websiteList = []
+    var uList = [];
+
+    Website.findAll({
+        where: {
+            userId: id
+        }
+    }).then(data => {
+        if (data.length != 0) {
+
+
+            list = data;
+            list.forEach(ele => {
+                const url = 'https://api.duda.co/api/sites/multiscreen/' + ele.site_name;
+                const options = {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json', 'authorization': 'Basic YTQwYjUyNDhmMDpyYWNaWW9yNzdLN24=' },
+                };
+                fetch(url, options)
+                    .then(res => res.json())
+                    .then(json => {
+                        body = json
+                        websiteList.push(body);
+
+                        User.findAll({
+                            where: {
+                                id: ele.userId
+                            }
+                        }).then(userList => {
+                            //console.log(userList)
+                            uList = userList;
+                            uList.forEach(element => {
+                                const url = 'https://api.duda.co/api/accounts/' + element.email + '/sites/' + ele.site_name + '/permissions';
+                                const options = {
+                                    method: 'GET',
+                                    headers: { 'Content-Type': 'application/json', 'authorization': 'Basic YTQwYjUyNDhmMDpyYWNaWW9yNzdLN24=' },
+                                };
+                                fetch(url, options)
+                                    .then(res => res.json())
+                                    .then(json => {
+                                        body = json
+                                        results.push(body);
+                                        if (list.length == results.length) {
+                                            res.send({
+                                                status: 1,
+                                                sitePermission: json,
+                                                websiteList: websiteList
+                                            })
+                                        }
+
+                                    })
+                            })
+
+                        })
+                    })
+            })
+
+
+        }
+        else {
+            res.send({
+                status: 4,
+                message: 'No Record Found!'
+            })
+        }
+    }).catch(err => {
+        console.log(err)
+        res.send({
+            err: err,
+            message: 'No Record Found!'
+        })
+    })
+
+
+
+
+})
 module.exports = router;

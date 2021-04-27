@@ -29,13 +29,13 @@ router.post('/save', (req, res) => {
         msg.to = data.email;
         var ser = new EmailService()
         ser.sendEmail(msg, function (err, result) {
-            if (err) {
-                var r = new Response(err, result);
-                response.json(r);
-            } else {
-                var r = new Response(err, "Password has been sent to your registered email id");
-                response.json(r);
-            }
+            // if (err) {
+            //     var r = new Response(err, result);
+            //     res.json(r);
+            // } else {
+            //     var r = new Response(err, "Password has been sent to your registered email id");
+            //     res.json(r);
+            // }
         });
         res.send({
             status: 1,

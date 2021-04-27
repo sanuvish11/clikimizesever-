@@ -34,11 +34,13 @@ class EmailService {
             from: system.mail.user,
             to: mailMessage.to,
             subject: mailMessage.subject,
-            html: mailMessage.message
+            html: mailMessage.message,
+            text: mailMessage.message
         };
         //Transporter to send email
         var transporter = nodemailer.createTransport(this.serverConfig);
         //Send email
+        console.log(email);
         transporter.sendMail(email, function(error, info) {
             callback(error, info);
         });

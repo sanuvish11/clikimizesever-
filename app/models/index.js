@@ -68,6 +68,15 @@ db.template = require("../models/template.model.js")(sequelize, Sequelize);
 
 db.website = require("../models/website.model.js")(sequelize, Sequelize);
 
+
+db.usernotification = require("../models/usernotification.model")(sequelize, Sequelize);
+
+db.message = require("../models/message.model")(sequelize, Sequelize);
+
+db.messagehistory = require("../models/messagehistory.model")(sequelize, Sequelize);
+
+db.sendnewslatter = require("../models/sendNewsLatter.model")(sequelize, Sequelize);
+
 db.role.belongsToMany(db.admin, {
     through: "user_roles",
     foreignKey: "roleId",
@@ -100,6 +109,10 @@ db.manageabusekeyword.belongsTo(db.admin);
 
 
 db.addtofavorite.belongsTo(db.user);
+
+
+db.usernotification.belongsTo(db.user);
+
 
 // db.manageblog.belongsTo(db.admin);
 

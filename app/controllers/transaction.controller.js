@@ -7,23 +7,33 @@ var PackageDetail = db.packagedetail;
 var UserPackage = db.userpackage;
 var User = db.user;
 var Notification = db.notification;
+var UserNotification = db.usernotification;
+var SiteSetting = db.sitesetting;
 const Op = db.Sequelize.Op;
-
+var keyStipe;
 const Stripe = require('stripe');
 // const stripe = Stripe('sk_test_51IMtrpHOr6CjjjlHeAbDmagCFqND6n79hz1UtQ6fEmKg5NY3dH26qkoMs4ePvpDlyPGImXilkqddcOQtRrY3gnaz00RaBZd16B');
 
 router.post('/paymenttest', (req, res) => {
     console.log("**************************************************");
     getToken(req, res);
+
 });
 
 async function getToken(req, res) {
+    var keyStipe;
+    await SiteSetting.findOne({
+
+    }).then(data => {
+        keyStipe = data.stripeSecretKey
+        // console.log(data)
+    })
     var packageName = req.body.packageName;
     var packagePrice = req.body.packagePrice;
     // console.log(req.body)
-    const stripe = require('stripe')('sk_test_51EBYsOCM7qY2Kwa3lqDQuweNRpNqrCIxKV8UXJczzY0vAtqPJPJw5IRUO3BkWni9vGc330B7rq0WM9bU0PFviZSf00CGjnQ8jP');
+    const stripe = require('stripe')(keyStipe);
     //  console.log(payment)
-
+    // console.log(keyStipe+"hello ashanu")
     const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [{
@@ -37,8 +47,8 @@ async function getToken(req, res) {
             quantity: 1,
         },],
         mode: 'payment',
-        success_url: "http://localhost:4201/success/{CHECKOUT_SESSION_ID}",
-        cancel_url: 'http://localhost:4201/failure',
+        success_url: "http://clickimizeuser.s3-website.us-east-2.amazonaws.com/success/{CHECKOUT_SESSION_ID}",
+        cancel_url: "http://clickimizeuser.s3-website.us-east-2.amazonaws.com/failure",
     });
 
     res.json({ id: session?.id });
@@ -49,16 +59,25 @@ async function getToken(req, res) {
 router.post('/retrieveSession', (req, res) => {
     console.log("**************************************************");
     getSession(req, res);
+
+
 });
 
 
 async function getSession(req, res) {
     console.log(req.body);
+    await SiteSetting.findOne({
+
+    }).then(data => {
+        keyStipe = data.stripeSecretKey
+        console.log(data)
+    })
+
     var sessionID = req.body.session_id;
     var userId = req.body.userId;
     var amount = req.body.packagePrice;
-    const stripe = require('stripe')('sk_test_51EBYsOCM7qY2Kwa3lqDQuweNRpNqrCIxKV8UXJczzY0vAtqPJPJw5IRUO3BkWni9vGc330B7rq0WM9bU0PFviZSf00CGjnQ8jP');
-    //  console.log(payment)
+    const stripe = require('stripe')(keyStipe);
+    console.log(keyStipe + "hello")
 
     const session = await stripe?.checkout.sessions.retrieve(sessionID);
     const customer = await stripe?.customers.retrieve(session.customer);
@@ -105,15 +124,28 @@ async function getSession(req, res) {
                     }
                     const myObjStr = JSON.stringify(myJSON);
                     //  console.log(myObjStr);
+                    //create admin notification
                     Notification.create({
-                        title: "purchase new package",
+                        title: "Purchase new package",
                         content: myObjStr,
                         type: "package",
                         status: 1
                     }).then(data => {
+                        //create user notification
+                        UserNotification.create({
+                            title: "Purchase new package",
+                            tblUserId: userpakage.tblUserId,
+                            content: "Thank you for purchasing " + userpakage.packageName + "",
+                            type: "package",
+                            status: 1
+                        }).then(purchase => {
+                            res.send({
+                                status: 1,
+                                message: "notification create successfully"
+                            })
+                        })
 
                     })
-
                 })
             }
             else {
@@ -131,7 +163,7 @@ async function getSession(req, res) {
             status: 1,
             message: 'unable to proccess'
         })
-        console.log(err)
+       // console.log(err)
     });
 
 
@@ -142,7 +174,6 @@ async function getSession(req, res) {
 
 
 router.post('/save', (req, res) => {
-
     Transaction.create({
         tblUserId: req.body.tblUserId,
         paymentMode: req.body.paymentMode,

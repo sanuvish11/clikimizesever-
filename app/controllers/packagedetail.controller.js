@@ -13,7 +13,7 @@ const Op = db.Sequelize.Op;
 //POST ROUTE
 //save package details
 router.post('/save', (req, res) => {
-  //  console.log(req.body)
+    //  console.log(req.body)
     PackageDetail.findOne({
         where: {
             packageName: req.body.packageName
@@ -27,19 +27,19 @@ router.post('/save', (req, res) => {
             return;
         } else {
             PackageDetail.create({
-                    packageName: req.body.packageName,
-                    packageDetail: req.body.packageDetail,
-                    packagePrice: req.body.packagePrice,
-                    packageDuration: req.body.packageDuration,
-                    packageStatus: req.body.packageStatus,
-                    tblPackageTypeId: req.body.tblPackageTypeId,
-                    numberofSite: req.body.numberofSite
-                }).then(packages => {
-                    res.json({
-                        status: 1,
-                        message: "record save successfully"
-                    })
+                packageName: req.body.packageName,
+                packageDetail: req.body.packageDetail,
+                packagePrice: req.body.packagePrice,
+                packageDuration: req.body.packageDuration,
+                packageStatus: req.body.packageStatus,
+                tblPackageTypeId: req.body.tblPackageTypeId,
+                numberofSite: req.body.numberofSite
+            }).then(packages => {
+                res.json({
+                    status: 1,
+                    message: "record save successfully"
                 })
+            })
                 .catch(err => {
                     res.send({
                         err: err,
@@ -54,96 +54,97 @@ router.post('/save', (req, res) => {
 
 //update package detail by id(1)
 router.post('/update/:id', (req, res) => {
-        const id = req.params.id;
-       // console.log(req.body)
-        PackageDetail.update(req.body, {
-                where: { id: id }
-            })
-            .then(num => {
-                if (num == 1) {
-                    res.send({
-                        status: 1,
-                        message: "Package Detail was updated successfully."
-                    });
-                } else {
-                    res.send({
-                        status: 0,
-                        message: `Cannot update package Detail with id=${id}. Maybe package Detail was not found or req.body is empty!`
-                    });
-                }
-            }).catch(err => {
-                res.send({
-                    err: err,
-                    status: 5
-                });
-            });
+    const id = req.params.id;
+    // console.log(req.body)
+    PackageDetail.update(req.body, {
+        where: { id: id }
     })
-    //get bY id 0
+        .then(num => {
+            if (num == 1) {
+                res.send({
+                    status: 1,
+                    message: "Package Detail was updated successfully."
+                });
+            } else {
+                res.send({
+                    status: 0,
+                    message: `Cannot update package Detail with id=${id}. Maybe package Detail was not found or req.body is empty!`
+                });
+            }
+        }).catch(err => {
+            res.send({
+                err: err,
+                status: 5
+            });
+        });
+})
+//get bY id 0
 router.post('/getIdByPackage', (req, res) => {
-        let query = req.body.type;
-        PackageDetail.findAll({
-                where: {
-                    packageStatus: query
-                }, order: [
-                    ["id", "DESC"]
-                ]
-            })
-            .then(package => {
-                if (package != 0) {
-                    res.json({
-                        status: 1,
-                        package: package
-                    })
-                } else {
-                    res.send({
-                        status: 4,
-                        message: "No Record Found"
-
-                    })
-                }
-            }).catch(err => {
-                res.send(err);
-            })
+    let query = req.body.type;
+    PackageDetail.findAll({
+        where: {
+            packageStatus: query
+        }, order: [
+            ["id", "DESC"]
+        ]
     })
-    //get route
-    //get all record
-router.get('/getall', (req, res) => {
-        PackageDetail.findAll({
-            
-                include: [{
-                    model: packageType,
-                    required: true,
-                }], order: [
-                    ["id", "DESC"]
-                ]
-            })
-            .then(package => {
-                if (package.length != 0) {
-                    res.send({
-                        status: 1,
-                        package: package
-                    })
-                } else {
-                    res.send({
-                        status: 4,
-                        message: "Record Not Found"
-                    })
-                }
-            }).catch(err => {
+        .then(package => {
+            if (package != 0) {
+                res.json({
+                    status: 1,
+                    package: package
+                })
+            } else {
                 res.send({
-                    err: err,
-                    status: 5,
-                    message: "unable to proccess"
-                });
-            });
+                    status: 4,
+                    message: "No Record Found"
+
+                })
+            }
+        }).catch(err => {
+            res.send(err);
+        })
+})
+//get route
+//get all record
+router.get('/getall', (req, res) => {
+    PackageDetail.findAll({
+
+        include: [{
+            model: packageType,
+            required: true,
+        }], order: [
+            ["id", "DESC"]
+        ]
     })
-    //detete route
-    //delete record by id
+        .then(package => {
+            if (package.length != 0) {
+                res.send({
+                    status: 1,
+                    package: package
+                })
+            } else {
+                res.send({
+                    status: 4,
+                    message: "Record Not Found"
+                })
+            }
+        }).catch(err => {
+           // console.log(err)
+            res.send({
+                err: err,
+                status: 5,
+                message: "unable to proccess"
+            });
+        });
+})
+//detete route
+//delete record by id
 router.delete('/delete/:id', (req, res) => {
     const id = req.body.id;
     PackageDetail.destroy({
-            where: { id: id }
-        })
+        where: { id: id }
+    })
         .then(num => {
             if (num == 1) {
                 res.send({
@@ -167,19 +168,19 @@ router.delete('/delete/:id', (req, res) => {
 });
 router.get('/getPackgeById/:id', (req, res) => {
     const id = req.params.id
-   // console.log(id);
+    // console.log(id);
     PackageDetail.findOne({
-            where: {
-                id: id
-            }
-        })
+        where: {
+            id: id
+        }
+    })
         .then(package => {
-            
+
             if (package != 0) {
                 res.json({
-                        status: 1,
-                        package: package
-                    })
+                    status: 1,
+                    package: package
+                })
             } else {
                 res.send({
                     status: 4,
@@ -194,5 +195,40 @@ router.get('/getPackgeById/:id', (req, res) => {
                 message: "unable to proccess=" + id
             });
         })
+})
+///get activated package list
+router.get('/getActivePackage', (req, res) => {
+    PackageDetail.findAll({
+
+        include: [{
+            model: packageType,
+            required: true,
+        }], order: [
+            ["id", "DESC"]
+        ], where: {
+            packageStatus: 1
+
+        }
+    })
+        .then(package => {
+            if (package.length != 0) {
+                res.send({
+                    status: 1,
+                    package: package
+                })
+            } else {
+                res.send({
+                    status: 4,
+                    message: "Record Not Found"
+                })
+            }
+        }).catch(err => {
+           // console.log(err)
+            res.send({
+                err: err,
+                status: 5,
+                message: "unable to proccess"
+            });
+        });
 })
 module.exports = router;

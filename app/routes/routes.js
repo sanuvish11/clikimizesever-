@@ -22,21 +22,26 @@ const addtofavoriteCtl = require("../controllers/addtofavorite.controller");
 const templateCtl = require("../controllers/template.contoller");
 const websiteCtl = require("../controllers/website.controller");
 const tokenCtl = require("../controllers/token.controller");
+const usernotificationCtl = require("../controllers/usernotification.controller");
+const messageCtl = require("../controllers/message.controller");
+const sendnewslatterCtl = require("../controllers/sendnewslatter.controller");
 const { authJwt } = require("../middleware");
 module.exports = function (app) {
     app.use(function (req, res, next) {
+      
         res.header(
             "Access-Control-Allow-Headers",
             "x-access-token, Origin, Content-Type, Accept"
         );
         next();
+
     });
 
     // ,[authJwt.verifyToken],
     app.use('/token', tokenCtl);
     app.use('/auth', adminCtl);
     app.use('/settings',[authJwt.verifyToken], siteCtl);
-    app.use('/user',[authJwt.verifyToken], userCtl);
+    app.use('/user', userCtl);
     app.use('/packagetype', [authJwt.verifyToken], packageTypeCtl);
     app.use('/packagedetail', [authJwt.verifyToken], packagedetailCtl);
     app.use('/manageContent', [authJwt.verifyToken], mananagcontentCtl);
@@ -52,8 +57,13 @@ module.exports = function (app) {
     app.use('/role', [authJwt.verifyToken], roleCtl);
     app.use('/notification', notificationCtl);
     app.use('/addtofavorite',  addtofavoriteCtl);
+    app.use('/message',  messageCtl);
     app.use('/template',  templateCtl);
     app.use('/website', websiteCtl);
+    app.use('/usernotification', usernotificationCtl);
+    app.use('/sendnewslatter', sendnewslatterCtl);
+
+    
     app.use('/logo', express.static('public/logo'));
     app.use('/favi', express.static('public/favicon'));
     app.use('/profile', express.static('public/profile'));

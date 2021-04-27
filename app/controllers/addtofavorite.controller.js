@@ -173,5 +173,47 @@ router.get('/getUserFavoriteById/:id', (req, res) => {
     });
 })
 
+//favrites templat
+router.get('/getUserFavoriteById/:id', (req, res) => {
+    let list = [];
+    let results = [];
+    const id = req.params.id;
+    AddToFavorite.findAll({
+        where: {
+            tblUserId: id
+        },
+        order: [
+            ["id", "DESC"]
+        ]
+    }).then(data => {
+        if (data.length != 0) {
+            list = data;
+            list.forEach(element => {
+                if (element.length != 0) {
+                    let favirates = {
+                        tblUserId: element.tblUserId,
+                        templateId: element.templateId,
+                        status: element.status
+                    }
+                    results.push(favirates);
+                    if (list.length == results.length) {
+                        res.send(Array.prototype.concat.apply([], results))
+                    }
+                }
+            })
+        } else {
+            res.send({
+                status: 4,
+                message: "No Record Found"
+            })
+        }
+    }).catch(err => {
+        res.send({
+            err: err,
+            status: 5,
+            message: "unable to proccess"
+        });
+    });
+})
 
 module.exports = router;

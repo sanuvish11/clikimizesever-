@@ -50,7 +50,7 @@ router.post('/save', (req, res) => {
             message: userpakage.packageName
           }
           const myObjStr = JSON.stringify(myJSON);
-          console.log(myObjStr);
+         // console.log(myObjStr);
           Notification.create({
             title: "purchase new package",
             content: myObjStr,
@@ -197,7 +197,7 @@ router.get('/getUserPlanByUserId/:id', (req, res) => {
             userID: id
           }
         }).then(data => {
-          console.log(data.count);
+         // console.log(data.count);
           let userpackage = {
             id: userpack.id,
             websiteCount: data.count,
